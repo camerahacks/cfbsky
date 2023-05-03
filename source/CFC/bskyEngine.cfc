@@ -38,6 +38,32 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    /**
+	 * Converts "Regular" date to ISO 8601
+	 * https://en.wikipedia.org/wiki/ISO_8601
+	 *
+	 * @datetime Date to be converted
+	 * @convertToUTC Convert to UTC? Default is True
+	 */
+
+	public function DateToISO8601(required date datetime, boolean convertToUTC=true){
+
+
+		if(convertToUTC){
+
+			datetime = dateConvert("local2Utc", arguments.datetime)
+
+		}
+
+		//return dateTimeFormat(datetime, "iso8601") // this works in Lucee
+
+		//return dateTimeFormat(datetime, "iso") // this works in ACF
+		
+		return (dateFormat( datetime, "yyyy-mm-dd" ) & "T" & timeFormat( datetime, "HH:mm:ss" ) & "Z")
+
+
+	}
+
     
     public boolean function isSessionValid() localmode='modern' {
         
@@ -65,6 +91,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         return 0
 
     }
+
+    // SERVER
 
     
     public boolean function createSession() localmode='modern' {
@@ -159,13 +187,38 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    public any function createInviteCode() localmode='modern' {
+    public any function createInviteCode(required useCount) localmode='modern' {
 
-        endpoint = 'xrpc/com.atproto.server.createInviteCode'
+        endpoint = 'xrpc/com.atproto.server.createInviteCode'   
 
-        httpMethod = 'GET'
+        httpMethod = 'POST'
 
-        
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        body = {"useCount":arguments.useCount, "forAccount":application.bsky.did}
+        arrayAppend(params, {'type':'body', 'name':'body', 'value':serializeJSON(body)})
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        arrayAppend(params, {'type':'header', 'name':'Content-Type', 'value':'application/json'})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            inviteCode = deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+
+        return inviteCode
+
     }
 
     // FEED
@@ -205,7 +258,79 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     // GRAPH
 
     
-    public any function getFollowers() {
+    public any function getFollowers(actor=application.bsky.did, limit='100', cursor) {
+
+        endpoint = 'xrpc/app.bsky.graph.getFollowers'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        actor = arguments.actor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    // REPO
+
+    
+    public any function createPost(repo=application.bsky.did, required post, createdAt=now()) {
+
+        endpoint = 'xrpc/com.atproto.repo.createRecord'
+
+        httpMethod = 'POST'
+
+        params = arrayNew()
+
+        repo = arguments.repo
+        post = arguments.post
+        createdAt = DateToISO8601(arguments.createdAt)
+
+        // Authorization required
+        isSessionValid()
+
+        // Lets start with simple text. We will get fancy later once API is working
+        record = {"text":post, "createdAt":createdAt}
+
+        body = {"repo":repo,"collection":"app.bsky.feed.post","record":record}
+        arrayAppend(params, {'type':'body', 'name':'body', 'value':serializeJSON(body)})
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        arrayAppend(params, {'type':'header', 'name':'Content-Type', 'value':'application/json'})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
         
     }
 
