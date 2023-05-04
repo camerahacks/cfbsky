@@ -46,7 +46,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 	 * @convertToUTC Convert to UTC? Default is True
 	 */
 
-	public function DateToISO8601(required date datetime, boolean convertToUTC=true){
+	public function DateToISO8601(required date datetime, boolean convertToUTC=true) localmode='modern' {
 
 
 		if(convertToUTC){
@@ -257,8 +257,46 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     // GRAPH
 
+    public any function getBlocks(limit='100', actor, cursor) localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getBlocks'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        actor = arguments.actor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        if(!isDefined('arguments.actor')){
+            actor = application.bsky.did
+        }
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
     
-    public any function getFollowers(actor=application.bsky.did, limit='100', cursor) {
+    public any function getFollowers(limit='100', actor, cursor) localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollowers'
 
@@ -271,6 +309,86 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         // Authorization required
         isSessionValid()
+
+        if(!isDefined('arguments.actor')){
+            actor = application.bsky.did
+        }
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    public any function getFollows(limit='100', actor, cursor) localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getFollows'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        actor = arguments.actor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        if(!isDefined('arguments.actor')){
+            actor = application.bsky.did
+        }
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    public any function getMutes(limit='100', actor, cursor) localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getMutes'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        actor = arguments.actor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        if(!isDefined('arguments.actor')){
+            actor = application.bsky.did
+        }
 
         authorizationHeader = 'Bearer '&application.bsky.accessJwt
         arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
@@ -295,7 +413,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     // REPO
 
     
-    public any function createPost(repo=application.bsky.did, required post, createdAt=now()) {
+    public any function createPost(repo=application.bsky.did, required post, createdAt=now()) localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.repo.createRecord'
 
