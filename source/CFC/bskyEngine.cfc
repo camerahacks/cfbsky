@@ -13,7 +13,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 		return this;
 	}
 
-    
+    // HELPER FUNCTIONS
+
     public any function sendRequest(required endpoint, httpMethod='GET', params) localmode='modern' {
 
         apiEndpoint = local_apiURL&arguments.endpoint
@@ -35,6 +36,16 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         bskyRequest = httpService.send().getPrefix()
 
         return bskyRequest
+        
+    }
+
+    
+    public any function authorizationHeader() {
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+
+        return {'type':'header', 'name':'Authorization', 'value':authorizationHeader}
+
         
     }
 
@@ -241,8 +252,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         params = arrayNew()
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
 
@@ -279,8 +290,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         // Authorization required
         isSessionValid()
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
 
@@ -313,8 +324,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         // Authorization required
         isSessionValid()
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'term', 'value':term})
 
@@ -346,8 +357,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         // Authorization required
         isSessionValid()
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'term', 'value':term})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
@@ -382,8 +393,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         // Authorization required
         isSessionValid()
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'algorithm', 'value':algorithm})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
@@ -420,8 +431,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             actor = application.bsky.did
         }
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
@@ -459,8 +470,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             actor = application.bsky.did
         }
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
@@ -497,8 +508,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             actor = application.bsky.did
         }
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
@@ -535,8 +546,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             actor = application.bsky.did
         }
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        // Request Params
+        arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
@@ -576,11 +587,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         // Lets start with simple text. We will get fancy later once API is working
         record = {"text":post, "createdAt":createdAt}
 
+        // Request Params
         body = {"repo":repo,"collection":"app.bsky.feed.post","record":record}
         arrayAppend(params, {'type':'body', 'name':'body', 'value':serializeJSON(body)})
 
-        authorizationHeader = 'Bearer '&application.bsky.accessJwt
-        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        arrayAppend(params, authorizationHeader())
         arrayAppend(params, {'type':'header', 'name':'Content-Type', 'value':'application/json'})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
