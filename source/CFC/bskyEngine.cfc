@@ -221,6 +221,151 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     }
 
+    // ACTOR
+
+    
+    public any function getProfile(actor) localmode='modern'{
+
+        endpoint = 'xrpc/app.bsky.actor.getProfile'
+
+        httpMethod = 'GET'
+
+        actor = arguments.actor
+
+        // Authorization required
+        isSessionValid()
+
+        if(!isDefined('arguments.actor')){
+            actor = application.bsky.did
+        }
+
+        params = arrayNew()
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    
+    public any function getProfiles(actors) localmode='modern'{
+        
+    }
+
+    
+    public any function getSuggestions(limit='100', cursor) localmode='modern'{
+
+        endpoint = 'xrpc/app.bsky.actor.getSuggestions'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+
+        
+    }
+
+    
+    public any function searchActors(required term, cursor) localmode='modern'{
+
+        endpoint = 'xrpc/app.bsky.actor.searchActors'
+
+        httpMethod = 'GET'
+
+        term = arguments.term
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'term', 'value':term})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    public any function searchActorsTypehead(required term, limit='100') localmode='modern'{
+
+        endpoint = 'xrpc/app.bsky.actor.searchActorsTypeahead'
+
+        httpMethod = 'GET'
+
+        term = arguments.term
+        limit = arguments.limit
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        authorizationHeader = 'Bearer '&application.bsky.accessJwt
+        arrayAppend(params, {'type':'header', 'name':'Authorization', 'value':authorizationHeader})
+        
+        arrayAppend(params, {'type':'url', 'name':'term', 'value':term})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
     // FEED
 
     public any function getTimeline(algorithm='reverse-chronological', limit='17') localmode='modern' {
