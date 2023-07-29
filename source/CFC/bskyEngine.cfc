@@ -76,6 +76,38 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 	}
 
     
+    public array function detectRichText(required post) {
+
+        // Regex to find link
+        rePattern = '(^|\s|\()((https?:\/\/[\S]+)|(([a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))'
+
+        reResultArray = reFindNoCase(rePattern, arguments.post, 1, True, 'all')
+
+        facets = arrayNew()
+
+        // check if there is a match
+        if(arrayLen(reResultArray)>=1 AND reResultArray[1].pos[1]!=0){
+
+            for(matches in reResultArray){
+
+                facets.push({
+                    'index': {
+                        'byteStart': matches.pos[3]-1,
+                        'byteEnd': matches.pos[3]+matches.len[3]
+                    },
+                    'features': [
+                        {'$type': 'app.bsky.richtext.facet##link', 'uri': matches.match[3]}
+                    ]
+                })
+
+            }
+        }
+
+        return facets;
+        
+    }
+
+    
     public boolean function isSessionValid() localmode='modern' {
         
         // Check if application authorization exists
@@ -569,7 +601,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     // REPO
 
     
-    public any function createPost(repo=application.bsky.did, required post, createdAt=now()) localmode='modern' {
+    public any function createPost(required post, createdAt=now()) localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.repo.createRecord'
 
@@ -577,15 +609,18 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         params = arrayNew()
 
-        repo = arguments.repo
         post = arguments.post
         createdAt = DateToISO8601(arguments.createdAt)
 
         // Authorization required
         isSessionValid()
 
+        repo = application.bsky.did
+
+        facets = detectRichText(post)
+
         // Lets start with simple text. We will get fancy later once API is working
-        record = {"text":post, "createdAt":createdAt}
+        record = {"text":post, "facets": facets , "createdAt":createdAt}
 
         // Request Params
         body = {"repo":repo,"collection":"app.bsky.feed.post","record":record}
