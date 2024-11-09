@@ -1,4 +1,4 @@
-# cfbsky - BlueSky CFML
+# BlueSky CFML
 cfbsky is a CFML BlueSky API Wrapper cfc component. The goal is to keep everything in one cfc so you can just copy this to your application folder and start using it right away. No setup needed besides adding the two variables below to ```Application.cfc```
 
 ### Required Application.cfc variables:
@@ -13,4 +13,4 @@ BlueSky authentication is handled on the fly if the API calls requires authentic
 
 ### WARNING
 
-This is a work in progress and there is no error handling implemented. Once I get more api calls working, I start adding error handling. For now, please do your own error handling.
+This is a work in progress and there is no error handling implemented. For now, please do your own error handling.
