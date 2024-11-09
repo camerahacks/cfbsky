@@ -1,5 +1,5 @@
 /**
- * Undocumented component
+ * CFC wrapper to interact with BlueSky API calls and some helper functions. 
  */
 
 component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
@@ -73,6 +73,25 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         cleanImage = imageNew(arguments.imageFile)
 
         return cleanImage
+        
+    }
+
+    /**
+     * Extract the record key from an atporoto URI
+     *
+     * @uri 
+     */
+    public any function getKeyFromURI(required uri) localmode='modern' {
+
+        uri = arguments.uri
+
+        // break the URI down into array
+
+        uriArray = listToArray(uri, "/")
+
+        //TODO Have to do some checking in the future to make sure URI is valid
+
+        return arrayLast(uriArray)
         
     }
 
@@ -476,6 +495,52 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     // FEED
 
     /**
+     * Get a view of an actor's 'author feed' (post and reposts by the author). Does not require auth.
+     *
+     * @actor 
+     * @limit 
+     * @cursor 
+     * @filter 
+     */
+    public any function getAuthorFeed(actor, limit='100', cursor, filter='posts_no_replies') {
+
+        endpoint = 'xrpc/app.bsky.feed.getAuthorFeed'
+
+        httpMethod = 'GET'
+
+        actor = arguments.actor
+
+        // Authorization required
+        isSessionValid()
+
+        if(!isDefined('arguments.actor')){
+            actor = application.bsky.did
+        }
+
+        params = arrayNew()
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':arguments.limit})
+        arrayAppend(params, {'type':'url', 'name':'filter', 'value':arguments.filter})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
      * Get a view of the requesting account's home timeline. This is expected to be some form of reverse-chronological feed.
      *
      * @algorithm 
@@ -801,6 +866,47 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             return bskyRequest
 
         }
+        
+    }
+
+    /**
+     * Delete a repository record, or ensure it doesn't exist. Requires auth, implemented by PDS.
+     *
+     * @record The record key. Usually extraccted from the record uri
+     */    
+    public any function deletePost(required record) {
+
+        endpoint = 'xrpc/com.atproto.repo.deleteRecord'
+
+        httpMethod = 'POST'
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        repo = application.bsky.did
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        body = {"repo":repo,"collection":"app.bsky.feed.post","rkey":record}
+        arrayAppend(params, {'type':'body', 'name':'body', 'value':serializeJSON(body)})
+        arrayAppend(params, {'type':'header', 'name':'Content-Type', 'value':'application/json'})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+
+
         
     }
 
