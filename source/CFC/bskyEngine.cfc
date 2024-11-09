@@ -1,3 +1,7 @@
+/**
+ * Undocumented component
+ */
+
 component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     public function init(){
@@ -14,6 +18,14 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 	}
 
     // HELPER FUNCTIONS
+
+    /**
+     * Send the API request
+     *
+     * @endpoint Atproto endpoint
+     * @httpMethod Method to be used for the request
+     * @params Array of params to be added to the request
+     */
 
     public any function sendRequest(required endpoint, httpMethod='GET', params) localmode='modern' {
 
@@ -39,13 +51,28 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
-    public any function authorizationHeader() {
+    /**
+     * Formats the Authorization header to be used with the endpoint
+     */
+    public any function authorizationHeader() localmode='modern'{
 
         authorizationHeader = 'Bearer '&application.bsky.accessJwt
 
         return {'type':'header', 'name':'Authorization', 'value':authorizationHeader}
 
+        
+    }
+
+    /**
+     * Remove metadata from image file. Always good practice to remove metadata
+     *
+     * @imageFile 
+     */    
+    public any function removeMetadata(required imageFile) localmode='modern'{
+
+        cleanImage = imageNew(arguments.imageFile)
+
+        return cleanImage
         
     }
 
@@ -56,7 +83,6 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 	 * @datetime Date to be converted
 	 * @convertToUTC Convert to UTC? Default is True
 	 */
-
 	public function DateToISO8601(required date datetime, boolean convertToUTC=true) localmode='modern' {
 
 
@@ -75,8 +101,12 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
 	}
 
-    
-    public array function detectRichText(required post) {
+    /**
+     * Detect richtext strings in the post text
+     *
+     * @post 
+     */
+    public array function detectRichText(required post) localmode='modern' {
 
         // Regex to find link
         rePattern = '(^|\s|\()((https?:\/\/[\S]+)|(([a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))'
@@ -107,7 +137,9 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Checks if the atproto server session is valid. If not valid, get a new session
+     */    
     public boolean function isSessionValid() localmode='modern' {
         
         // Check if application authorization exists
@@ -137,7 +169,9 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     // SERVER
 
-    
+    /**
+     * Create an authentication session.
+     */
     public boolean function createSession() localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.server.createSession'
@@ -172,6 +206,9 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    /**
+     * Get information about the current auth session. Requires auth.
+     */
     public boolean function getSession() localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.server.getSession'
@@ -197,7 +234,9 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Refresh an authentication session. Requires auth using the 'refreshJwt' (not the 'accessJwt').
+     */
     public boolean function refreshSession() localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.server.refreshSession'
@@ -230,6 +269,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    /**
+     * This has never worked. Will delete
+     *
+     * @useCount 
+     */
     public any function createInviteCode(required useCount) localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.server.createInviteCode'   
@@ -266,7 +310,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     // ACTOR
 
-    
+    /**
+     * Get detailed profile view of an actor. Does not require auth, but contains relevant metadata with auth.
+     *
+     * @actor The user's did
+     */
     public any function getProfile(actor) localmode='modern'{
 
         endpoint = 'xrpc/app.bsky.actor.getProfile'
@@ -308,7 +356,12 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Get a list of suggested actors. Expected use is discovery of accounts to follow during new account onboarding.
+     *
+     * @limit 
+     * @cursor 
+     */
     public any function getSuggestions(limit='100', cursor) localmode='modern'{
 
         endpoint = 'xrpc/app.bsky.actor.getSuggestions'
@@ -342,7 +395,12 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Find actors (profiles) matching search criteria. Does not require auth.
+     *
+     * @term 
+     * @cursor 
+     */
     public any function searchActors(required term, cursor) localmode='modern'{
 
         endpoint = 'xrpc/app.bsky.actor.searchActors'
@@ -375,6 +433,12 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    /**
+     * Find actor suggestions for a prefix search term. Expected use is for auto-completion during text field entry. Does not require auth.
+     *
+     * @term 
+     * @limit 
+     */
     public any function searchActorsTypehead(required term, limit='100') localmode='modern'{
 
         endpoint = 'xrpc/app.bsky.actor.searchActorsTypeahead'
@@ -411,6 +475,12 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     // FEED
 
+    /**
+     * Get a view of the requesting account's home timeline. This is expected to be some form of reverse-chronological feed.
+     *
+     * @algorithm 
+     * @limit 
+     */
     public any function getTimeline(algorithm='reverse-chronological', limit='17') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.feed.getTimeline'
@@ -483,7 +553,13 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Enumerates accounts which follow a specified account (actor).
+     *
+     * @limit 
+     * @actor 
+     * @cursor 
+     */
     public any function getFollowers(limit='100', actor, cursor) localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollowers'
@@ -522,6 +598,13 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    /**
+     * Enumerates accounts which a specified account (actor) follows.
+     *
+     * @limit 
+     * @actor 
+     * @cursor 
+     */
     public any function getFollows(limit='100', actor, cursor) localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollows'
@@ -560,6 +643,13 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    /**
+     * Enumerates accounts that the requesting account (actor) currently has muted. Requires auth.
+     *
+     * @limit 
+     * @actor 
+     * @cursor 
+     */
     public any function getMutes(limit='100', actor, cursor) localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getMutes'
@@ -600,8 +690,68 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     // REPO
 
-    
-    public any function createPost(required post, createdAt=now()) localmode='modern' {
+    /**
+     * Upload a new blob, to be referenced from a repository record. The blob will be deleted if it is not referenced within a time window (eg, minutes).
+     * Blob restrictions (mimetype, size, etc) are enforced when the reference is created. Requires auth, implemented by PDS
+     *
+     * @imageFile File path
+     * @altText Alt text - not currently implemented
+     */
+    public any function uploadBlob(required imageFile, altText) localmode='modern' {
+
+        endpoint = 'xrpc/com.atproto.repo.uploadBlob'
+
+        httpMethod = 'POST'
+
+        mime = fileGetMimeType(imageFile)
+
+        params = arrayNew()
+
+        // remove metadata
+        cleanImage = ImageGetBlob(removeMetadata(arguments.imageFile))
+
+        // Authorization required
+        isSessionValid()
+
+        arrayAppend(params, authorizationHeader())
+        arrayAppend(params, {'type':'header', 'name':'Content-Type', 'value':mime})
+        arrayAppend(params, {'type':'body', 'name':'body', 'value':cleanImage})
+
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            requestContent = deserializeJSON(bskyRequest.filecontent)
+
+            embed = {
+                        "$type":"app.bsky.embed.images",
+                        "images": [
+                            {
+                                "alt": "",
+                                "image": requestContent['blob']
+                            }
+                        ]
+                    }
+            
+            return embed
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
+     * Create a single new repository record. Requires auth, implemented by PDS.
+     *
+     * @post Tex of the post
+     * @createdAt 
+     * @imageFile Image file path
+     */
+    public any function createPost(required post, createdAt=now(), imageFile) localmode='modern' {
 
         endpoint = 'xrpc/com.atproto.repo.createRecord'
 
@@ -621,6 +771,17 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         // Lets start with simple text. We will get fancy later once API is working
         record = {"text":post, "facets": facets , "createdAt":createdAt}
+
+        // Upload media and the formatted embed
+        if (isDefined('arguments.imageFile')) {
+
+            image = arguments.imageFile
+
+            blobImage = uploadBlob(image)
+
+            record['embed'] = blobImage
+
+        }
 
         // Request Params
         body = {"repo":repo,"collection":"app.bsky.feed.post","record":record}
