@@ -17,7 +17,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 		return this;
 	}
 
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS //
 
     /**
      * Send the API request
@@ -141,7 +141,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
                 facets.push({
                     'index': {
-                        'byteStart': matches.pos[3]-1,
+                        'byteStart': matches.pos[6]-1,
                         'byteEnd': matches.pos[3]+matches.len[3]
                     },
                     'features': [
@@ -153,6 +153,47 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         }
 
         return facets;
+        
+    }
+
+    /**
+     * Detect mention in post text
+     *
+     * @post 
+     */    
+    public any function detectMention(required post) localmode='modern' {
+
+        // Regex to find mentions
+        rePatternMention = '(@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)'
+
+        reResultArrayMention = reFindNoCase(rePatternMention, arguments.post, 1, true, 'all')
+
+        facets = arrayNew()
+
+        // Check if there is a match
+        if(arrayLen(reResultArrayMention)>=1 AND reResultArrayMention[1].pos[1]!=0){
+
+            for(matches in reResultArrayMention){
+
+                // Only add the mention if the handle exists
+                if(resolveHandle(matches.match[1]) != 0){
+
+                    facets.push({
+                        'index': {
+                            'byteStart': matches.pos[1]-1,
+                            'byteEnd': matches.pos[1]+matches.len[1]
+                        },
+                        'features': [
+                            {'$type': 'app.bsky.richtext.facet##mention', 'did': matches.match[1]}
+                        ]
+                    })
+
+                }
+
+            }
+        }
+
+        return facets
         
     }
 
@@ -186,7 +227,41 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
     }
 
-    // SERVER
+    // IDENTITY CALLS //
+
+    /**
+     * Validate user handle with server
+     *
+     * @handle User handle without @
+     */
+    public any function resolveHandle(required handle) localmode='modern' {
+
+        endpoint = 'xrpc/com.atproto.identity.resolveHandle'
+
+        httpMethod = 'GET'
+
+        // Remove @
+        handle = replace(arguments.handle, '@', '')
+
+        params = [{'type':'url', 'name':'handle', 'value':handle}]
+
+        handleRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(handleRequest.status_code != 400){
+
+            handleInfo = deserializeJSON(handleRequest.filecontent)
+
+            return handleInfo.did
+
+        } else {
+            
+            return 0
+
+        }
+        
+    }
+
+    // SERVER CALLS //
 
     /**
      * Create an authentication session.
@@ -753,7 +828,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    // REPO
+    // REPO CALLS //
 
     /**
      * Upload a new blob, to be referenced from a repository record. The blob will be deleted if it is not referenced within a time window (eg, minutes).
