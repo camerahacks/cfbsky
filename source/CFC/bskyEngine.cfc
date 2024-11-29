@@ -51,6 +51,54 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    
+    public any function getEmbedInfo(required url) localmode='modern' {
+
+        httpService = new http(method = 'GET', url = arguments.url)
+
+
+        embedRequest = httpService.send().getPrefix()
+
+        html = htmlParse( embedRequest.filecontent )
+
+        embedInfo = {}
+
+        // Use Open Graph attributes
+        embedInfo['embedImage'] = xmlSearch(html, "//*[@property='og:image']")
+        if(embedInfo['embedImage'].len()){
+
+            embedInfo['embedImage'] = embedInfo['embedImage'][1]['XmlAttributes']['content']
+
+        }
+
+        embedInfo['embedTitle'] = xmlSearch(html, "//*[@property='og:title']")
+        if(embedInfo['embedTitle'].len()){
+
+            embedInfo['embedTitle'] = embedInfo['embedTitle'][1]['XmlAttributes']['content']
+
+        }else {
+            // If there is not open graph (og:) attribute, use the page title
+            embedInfo['embedTitle'] = html.html.head.title.XmlText
+
+        }
+
+        embedInfo['embedDescription'] = xmlSearch(html, "//*[@property='og:description']")
+        if(embedInfo['embedDescription'].len()){
+
+            embedInfo['embedDescription'] = embedInfo['embedDescription'][1]['XmlAttributes']['content']
+
+        } else {
+            
+            embedInfo['embedDescription'] = embedInfo['embedTitle']
+
+        }
+
+        return embedInfo
+
+
+        
+    }
+
     /**
      * Formats the Authorization header to be used with the endpoint
      */
@@ -125,12 +173,16 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      *
      * @post 
      */
-    public array function detectRichText(required post) localmode='modern' {
+    public array function detectURL(required post) localmode='modern' {
 
         // Regex to find link
-        rePattern = '(^|\s|\()((https?:\/\/[\S]+)|(([a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))'
+        // rePattern = '(^|\s|\()((https?:\/\/[\S]+)|(([a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))'
+
+        rePattern = 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~##=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~##?&//=]*)'
 
         reResultArray = reFindNoCase(rePattern, arguments.post, 1, True, 'all')
+
+        dump(reResultArray)
 
         facets = arrayNew()
 
@@ -141,11 +193,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
                 facets.push({
                     'index': {
-                        'byteStart': matches.pos[6]-1,
-                        'byteEnd': matches.pos[3]+matches.len[3]
+                        'byteStart': matches.pos[1]-1,
+                        'byteEnd': matches.pos[1]+matches.len[1]
                     },
                     'features': [
-                        {'$type': 'app.bsky.richtext.facet##link', 'uri': matches.match[3]}
+                        {'$type': 'app.bsky.richtext.facet##link', 'uri': matches.match[1]}
                     ]
                 })
 
@@ -184,11 +236,47 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
                             'byteEnd': matches.pos[1]+matches.len[1]
                         },
                         'features': [
-                            {'$type': 'app.bsky.richtext.facet##mention', 'did': matches.match[1]}
+                            {'$type': 'app.bsky.richtext.facet##mention', 'did': resolveHandle(matches.match[1])}
                         ]
                     })
 
                 }
+
+            }
+        }
+
+        return facets
+        
+    }
+
+        /**
+     * Detect mention in post text
+     *
+     * @post 
+     */    
+    public any function detectHashtag(required post) localmode='modern' {
+
+        // Regex to find mentions
+        rePatternHashtag = '(##+[a-zA-Z0-9(_)]{1,})'
+
+        reResultArrayHashtag = reFindNoCase(rePatternHashtag, arguments.post, 1, true, 'all')
+
+        facets = arrayNew()
+
+        // Check if there is a match
+        if(arrayLen(reResultArrayHashtag)>=1 AND reResultArrayHashtag[1].pos[1]!=0){
+
+            for(matches in reResultArrayHashtag){
+
+                facets.push({
+                    'index': {
+                        'byteStart': matches.pos[1]-1,
+                        'byteEnd': matches.pos[1]+matches.len[1]
+                    },
+                    'features': [
+                        {'$type': 'app.bsky.richtext.facet##tag', 'tag': matches.match[1]}
+                    ]
+                })
 
             }
         }
@@ -863,18 +951,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         if(bskyRequest.statuscode=="200 OK"){
 
             requestContent = deserializeJSON(bskyRequest.filecontent)
-
-            embed = {
-                        "$type":"app.bsky.embed.images",
-                        "images": [
-                            {
-                                "alt": "",
-                                "image": requestContent['blob']
-                            }
-                        ]
-                    }
             
-            return embed
+            return requestContent
 
         }else{
 
@@ -902,26 +980,96 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         post = arguments.post
         createdAt = DateToISO8601(arguments.createdAt)
 
-        // Authorization required
-        isSessionValid()
-
-        repo = application.bsky.did
-
-        facets = detectRichText(post)
-
         // Lets start with simple text. We will get fancy later once API is working
-        record = {"text":post, "facets": facets , "createdAt":createdAt}
+        record = {"text":post, "createdAt":createdAt}
 
-        // Upload media and the formatted embed
+        // Upload media and the formatted embed. Image takes precedence as an embed
         if (isDefined('arguments.imageFile')) {
 
             image = arguments.imageFile
 
             blobImage = uploadBlob(image)
 
-            record['embed'] = blobImage
+            record['embed'] = {
+                "$type":"app.bsky.embed.images",
+                "images": [
+                    {
+                        "alt": "",
+                        "image": blobImage['blob']
+                    }
+                ]
+            }
 
         }
+
+        // Authorization required
+        isSessionValid()
+
+        repo = application.bsky.did
+
+        // TO-DO: This (adding facets) should all probably live in its own function
+        facets = []
+        
+        facet = detectHashtag(post)
+        if(arrayLen(facet)){
+
+            for (f in facet){
+            
+                arrayAppend(facets, f )
+            
+            }
+        }
+        
+        facet = detectMention(post)
+        if(arrayLen(facet)){
+            
+            for (f in facet){
+            
+                arrayAppend(facets, f )
+            
+            }
+        }
+        
+        facet = detectURL(post)
+        if(arrayLen(facet)){
+
+            for (f in facet){
+            
+                arrayAppend(facets, f )
+            
+            }
+
+            // embed the first link if there are no embeds. Images take priority
+            if(!isDefined('record.embed')){
+
+                embedInfo = getEmbedInfo(facet[1]['features'][1]['uri'])
+
+                record['embed'] = {
+                    "$type":"app.bsky.embed.external",
+                    "external": 
+                        {
+                            "uri": facet[1]['features'][1]['uri'],
+                            "title": embedInfo['embedTitle'],
+                            "description": embedInfo['embedDescription']
+
+                        }
+                    
+                }
+
+                // if the card has an image, embed it.
+                if (embedInfo['embedImage'].len()){
+
+                    embedImage =  uploadBlob(imageRead(embedInfo['embedImage']))
+
+                    record['embed']['external']['thumb'] = embedImage['blob']
+                
+                }
+
+            }
+        }
+
+        // add the facets to the record
+        record['facets'] = facets
 
         // Request Params
         body = {"repo":repo,"collection":"app.bsky.feed.post","record":record}
