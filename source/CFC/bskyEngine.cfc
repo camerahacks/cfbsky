@@ -51,7 +51,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Get URL embed info
+     *
+     * @url 
+     */
     public any function getEmbedInfo(required url) localmode='modern' {
 
         httpService = new http(method = 'GET', url = arguments.url)
@@ -176,8 +180,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     public array function detectURL(required post) localmode='modern' {
 
         // Regex to find link
-        // rePattern = '(^|\s|\()((https?:\/\/[\S]+)|(([a-z][a-z0-9]*(\.[a-z0-9]+)+)[\S]*))'
-
+        // Credit where credit is due. Pattern from this post: https://stackoverflow.com/a/190405
         rePattern = 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~##=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~##?&//=]*)'
 
         reResultArray = reFindNoCase(rePattern, arguments.post, 1, True, 'all')
