@@ -175,29 +175,47 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     /**
      * Detect richtext strings in the post text
      *
-     * @post 
+     * @record 
      */
-    public array function detectURL(required post) localmode='modern' {
+    public any function detectURL(required record) localmode='modern' {
+
+
+        record = arguments.record
+        postText = record.text
 
         // Regex to find link
         // Credit where credit is due. Pattern from this post: https://stackoverflow.com/a/190405
         rePattern = 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~##=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~##?&//=]*)'
 
-        reResultArray = reFindNoCase(rePattern, arguments.post, 1, True, 'all')
-
-        dump(reResultArray)
-
-        facets = arrayNew()
+        reResultArray = reFindNoCase(rePattern, postText, 1, True, 'all')
 
         // check if there is a match
         if(arrayLen(reResultArray)>=1 AND reResultArray[1].pos[1]!=0){
 
+            offset = 0
+
             for(matches in reResultArray){
 
-                facets.push({
+                // If a link is greater than 30 char, make it shorter in the post text
+                if( matches.len[1] GT 30 ){
+
+                    byteStart = matches.pos[1] - offset - 1
+                    byteEnd = matches.pos[1] + 30 - 1
+                    offset = offset + (matches.len[1] - 30)
+                    shortURL = shortenURL(matches.match[1])
+                    record['text'] = replace(postText, matches.match[1], shortenURL)
+
+                }else {
+                    
+                    byteStart = matches.pos[1] - offset - 1
+                    byteEnd = matches.pos[1] - offset + matches.len[1] - 1
+
+                }
+
+                record.facets.push({
                     'index': {
-                        'byteStart': matches.pos[1]-1,
-                        'byteEnd': matches.pos[1]+matches.len[1]
+                        'byteStart': byteStart,
+                        'byteEnd': byteEnd
                     },
                     'features': [
                         {'$type': 'app.bsky.richtext.facet##link', 'uri': matches.match[1]}
@@ -207,23 +225,30 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             }
         }
 
-        return facets;
+        return record;
+        
+    }
+
+    
+    public any function shortenURL(required url) localmode='modern' {
+
+        return left(arguments.url, 27)&'...'
         
     }
 
     /**
      * Detect mention in post text
      *
-     * @post 
+     * @record 
      */    
-    public any function detectMention(required post) localmode='modern' {
+    public any function detectMention(required record) localmode='modern' {
+
+        record = arguments.record
 
         // Regex to find mentions
         rePatternMention = '(@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)'
 
-        reResultArrayMention = reFindNoCase(rePatternMention, arguments.post, 1, true, 'all')
-
-        facets = arrayNew()
+        reResultArrayMention = reFindNoCase(rePatternMention, record.text, 1, true, 'all')
 
         // Check if there is a match
         if(arrayLen(reResultArrayMention)>=1 AND reResultArrayMention[1].pos[1]!=0){
@@ -233,10 +258,10 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
                 // Only add the mention if the handle exists
                 if(resolveHandle(matches.match[1]) != 0){
 
-                    facets.push({
+                    record.facets.push({
                         'index': {
-                            'byteStart': matches.pos[1]-1,
-                            'byteEnd': matches.pos[1]+matches.len[1]
+                            'byteStart': matches.pos[1] - 1,
+                            'byteEnd': matches.pos[1] + matches.len[1] - 1
                         },
                         'features': [
                             {'$type': 'app.bsky.richtext.facet##mention', 'did': resolveHandle(matches.match[1])}
@@ -248,43 +273,43 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             }
         }
 
-        return facets
+        return record
         
     }
 
         /**
      * Detect mention in post text
      *
-     * @post 
+     * @record 
      */    
-    public any function detectHashtag(required post) localmode='modern' {
+    public any function detectHashtag(required record) localmode='modern' {
+
+        record = arguments.record
 
         // Regex to find mentions
         rePatternHashtag = '(##+[a-zA-Z0-9(_)]{1,})'
 
-        reResultArrayHashtag = reFindNoCase(rePatternHashtag, arguments.post, 1, true, 'all')
-
-        facets = arrayNew()
+        reResultArrayHashtag = reFindNoCase(rePatternHashtag, record['text'] , 1, true, 'all')
 
         // Check if there is a match
         if(arrayLen(reResultArrayHashtag)>=1 AND reResultArrayHashtag[1].pos[1]!=0){
 
             for(matches in reResultArrayHashtag){
 
-                facets.push({
+                record.facets.push({
                     'index': {
-                        'byteStart': matches.pos[1]-1,
-                        'byteEnd': matches.pos[1]+matches.len[1]
+                        'byteStart': matches.pos[1] - 1,
+                        'byteEnd': matches.pos[1] + matches.len[1] - 1
                     },
                     'features': [
-                        {'$type': 'app.bsky.richtext.facet##tag', 'tag': matches.match[1]}
+                        {'$type': 'app.bsky.richtext.facet##tag', 'tag': replace(matches.match[1], '##', '')}
                     ]
                 })
 
             }
         }
 
-        return facets
+        return record
         
     }
 
@@ -970,7 +995,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      *
      * @post Tex of the post
      * @createdAt 
-     * @imageFile Image file path
+     * @imageFile Image file path or CFML image object
      */
     public any function createPost(required post, createdAt=now(), imageFile) localmode='modern' {
 
@@ -980,11 +1005,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         params = arrayNew()
 
-        post = arguments.post
+        postText = arguments.post
         createdAt = DateToISO8601(arguments.createdAt)
 
-        // Lets start with simple text. We will get fancy later once API is working
-        record = {"text":post, "createdAt":createdAt}
+        // Create the basic shell of the record
+        record = {"text": postText, "createdAt": createdAt}
 
         // Upload media and the formatted embed. Image takes precedence as an embed
         if (isDefined('arguments.imageFile')) {
@@ -1011,68 +1036,55 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         repo = application.bsky.did
 
         // TO-DO: This (adding facets) should all probably live in its own function
-        facets = []
+        record['facets'] = []
         
-        facet = detectHashtag(post)
-        if(arrayLen(facet)){
+        record = detectURL(record)
 
-            for (f in facet){
-            
-                arrayAppend(facets, f )
-            
-            }
-        }
+        record = detectHashtag(record)
         
-        facet = detectMention(post)
-        if(arrayLen(facet)){
-            
-            for (f in facet){
-            
-                arrayAppend(facets, f )
-            
-            }
-        }
-        
-        facet = detectURL(post)
-        if(arrayLen(facet)){
+        record = detectMention(record)
 
-            for (f in facet){
-            
-                arrayAppend(facets, f )
-            
-            }
+        if(arrayLen(record['facets'])){
 
             // embed the first link if there are no embeds. Images take priority
             if(!isDefined('record.embed')){
 
-                embedInfo = getEmbedInfo(facet[1]['features'][1]['uri'])
+                // find the first facet that is a link
+                linkEmbeds = arrayFilter(record['facets'], function(f){
 
-                record['embed'] = {
-                    "$type":"app.bsky.embed.external",
-                    "external": 
-                        {
-                            "uri": facet[1]['features'][1]['uri'],
-                            "title": embedInfo['embedTitle'],
-                            "description": embedInfo['embedDescription']
+                    return f['features'][1]['$type'] == 'app.bsky.richtext.facet##link'
 
-                        }
+                })
+
+                if( linkEmbeds.len() ){
+
+                    embedInfo = getEmbedInfo(linkEmbeds[1]['features'][1]['uri'])
+
+                    record['embed'] = {
+                        "$type":"app.bsky.embed.external",
+                        "external": 
+                            {
+                                "uri": linkEmbeds[1]['features'][1]['uri'],
+                                "title": embedInfo['embedTitle'],
+                                "description": embedInfo['embedDescription']
+    
+                            }
+                        
+                    }
+    
+                    // if the card has an image, embed it.
+                    if (embedInfo['embedImage'].len()){
+    
+                        embedImage =  uploadBlob(imageRead(embedInfo['embedImage']))
+    
+                        record['embed']['external']['thumb'] = embedImage['blob']
                     
-                }
+                    }
 
-                // if the card has an image, embed it.
-                if (embedInfo['embedImage'].len()){
-
-                    embedImage =  uploadBlob(imageRead(embedInfo['embedImage']))
-
-                    record['embed']['external']['thumb'] = embedImage['blob']
-                
                 }
 
             }
         }
-
-        // add the facets to the record
-        record['facets'] = facets
 
         // Request Params
         body = {"repo":repo,"collection":"app.bsky.feed.post","record":record}
