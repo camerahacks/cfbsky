@@ -529,7 +529,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     /**
      * Get detailed profile view of an actor. Does not require auth, but contains relevant metadata with auth.
      *
-     * @actor The user's did
+     * @actor The user's did or handle
      */
     public any function getProfile(actor) localmode='modern'{
 
@@ -537,14 +537,10 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         httpMethod = 'GET'
 
-        actor = arguments.actor
+        actor = arguments.actor ?: application.bsky.did
 
         // Authorization required
         isSessionValid()
-
-        if(!isDefined('arguments.actor')){
-            actor = application.bsky.did
-        }
 
         params = arrayNew()
 
@@ -585,6 +581,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         httpMethod = 'GET'
 
         limit = arguments.limit
+        cursor = arguments.cursor
 
         params = arrayNew()
 
@@ -595,7 +592,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -625,6 +622,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         httpMethod = 'GET'
 
         term = arguments.term
+        cursor = arguments.cursor
 
         params = arrayNew()
 
@@ -635,7 +633,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'term', 'value':term})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -694,27 +692,24 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     // FEED
 
     /**
-     * Get a view of an actor's 'author feed' (post and reposts by the author). Does not require auth.
+     * Get a list of feeds (feed generator records) created by the actor (in the actor's repo).
      *
      * @actor 
      * @limit 
      * @cursor 
-     * @filter 
      */
-    public any function getAuthorFeed(actor, limit='100', cursor='', filter='posts_no_replies') {
+    public any function getActorFeeds(actor, limit='100', cursor='') localmode='modern' {
 
-        endpoint = 'xrpc/app.bsky.feed.getAuthorFeed'
+        endpoint = 'xrpc/app.bsky.feed.getActorFeeds'
 
         httpMethod = 'GET'
 
-        actor = arguments.actor
+        actor = arguments.actor ?: application.bsky.did
+        limit = arguments.limit
+        cursor = arguments.cursor
 
         // Authorization required
         isSessionValid()
-
-        if(!isDefined('arguments.actor')){
-            actor = application.bsky.did
-        }
 
         params = arrayNew()
 
@@ -722,9 +717,93 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         arrayAppend(params, authorizationHeader())
 
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
-        arrayAppend(params, {'type':'url', 'name':'limit', 'value':arguments.limit})
-        arrayAppend(params, {'type':'url', 'name':'filter', 'value':arguments.filter})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    public any function getActorLikes(actor, limit='100', cursor='') localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.feed.getActorLikes'
+
+        httpMethod = 'GET'
+
+        actor = arguments.actor ?: application.bsky.did
+        limit = arguments.limit
+        cursor = arguments.cursor
+
+        // Authorization required
+        isSessionValid()
+
+        params = arrayNew()
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
+     * Get a view of an actor's 'author feed' (post and reposts by the author). Does not require auth.
+     *
+     * @actor 
+     * @limit 
+     * @cursor 
+     * @filter posts_with_replies, posts_no_replies, posts_with_media, posts_and_author_threads
+     * @includePins
+     */
+    public any function getAuthorFeed(actor, limit='100', cursor='', filter='posts_no_replies', includePins=true) localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.feed.getAuthorFeed'
+
+        httpMethod = 'GET'
+
+        actor = arguments.actor ?: application.bsky.did
+        limit = arguments.limit
+        filter = arguments.filter
+        cursor = arguments.cursor
+        includePins = arguments.includePins
+
+        // Authorization required
+        isSessionValid()
+
+        params = arrayNew()
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'filter', 'value':filter})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+        arrayAppend(params, {'type':'url', 'name':'includePins', 'value':includePins})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -755,6 +834,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
 
         algorithm = arguments.algorithm
         limit = arguments.limit
+        cursor = arguments.cursor
 
         params = arrayNew()
 
@@ -766,7 +846,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
         arrayAppend(params, {'type':'url', 'name':'algorithm', 'value':algorithm})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -791,30 +871,25 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @actor 
      * @cursor 
      */
-    public any function getBlocks(limit='100', actor, cursor='') localmode='modern' {
+    public any function getBlocks(limit='100', cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getBlocks'
 
         httpMethod = 'GET'
 
         limit = arguments.limit
-        actor = arguments.actor
+        cursor = arguments.cursor
 
         params = arrayNew()
 
         // Authorization required
         isSessionValid()
 
-        if(!isDefined('arguments.actor')){
-            actor = application.bsky.did
-        }
-
         // Request Params
         arrayAppend(params, authorizationHeader())
         
-        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -833,34 +908,31 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     /**
      * Enumerates accounts which follow a specified account (actor).
      *
-     * @limit 
-     * @actor 
+     * @actor
+     * @limit  
      * @cursor 
      */
-    public any function getFollowers(limit='100', actor, cursor='') localmode='modern' {
+    public any function getFollowers(actor, limit='100', cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollowers'
 
         httpMethod = 'GET'
 
         limit = arguments.limit
-        actor = arguments.actor
+        actor = arguments.actor ?: application.bsky.did
+        cursor = arguments.cursor
 
         params = arrayNew()
 
         // Authorization required
         isSessionValid()
 
-        if(!isDefined('arguments.actor')){
-            actor = application.bsky.did
-        }
-
         // Request Params
         arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -879,34 +951,190 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     /**
      * Enumerates accounts which a specified account (actor) follows.
      *
-     * @limit 
-     * @actor 
+     * @actor
+     * @limit  
      * @cursor 
      */
-    public any function getFollows(limit='100', actor, cursor='') localmode='modern' {
+    public any function getFollows(actor, limit='100', cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollows'
 
         httpMethod = 'GET'
 
         limit = arguments.limit
-        actor = arguments.actor
+        actor = arguments.actor ?: application.bsky.did
+        cursor = arguments.cursor
 
         params = arrayNew()
 
         // Authorization required
         isSessionValid()
 
-        if(!isDefined('arguments.actor')){
-            actor = application.bsky.did
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+        
+        arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
         }
+        
+    }
+
+    /**
+     * Enumerates accounts which follow a specified account (actor) and are followed by the viewer.
+     *
+     * @actor 
+     * @limit 
+     * @cursor 
+     */
+    public any function getKnownFollower(actor, limit='100', cursor='') localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getKnownFollowers'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        actor = arguments.actor ?: application.bsky.did
+        cursor = arguments.cursor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
 
         // Request Params
         arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
-        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
+     * Get mod lists that the requesting account (actor) is blocking. Requires auth.
+     *
+     * @limit 
+     * @cursor 
+     */
+    public any function getListBlocks(limit='100', cursor='') localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getListBlocks'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        cursor = arguments.cursor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
+     * Enumerates mod lists that the requesting account (actor) currently has muted. Requires auth.
+     *
+     * @limit 
+     * @cursor 
+     */
+    public any function getListMutes(limit='100', cursor='') localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getListMutes'
+
+        httpMethod = 'GET'
+
+        limit = arguments.limit
+        cursor = arguments.cursor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    public any function getList(required list, limit='100', cursor='') localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.graph.getList'
+
+        httpMethod = 'GET'
+
+        list = arguments.list
+        limit = arguments.limit
+        cursor = arguments.cursor
+
+        params = arrayNew()
+
+        // Authorization required
+        isSessionValid()
+
+        // Request Params
+        arrayAppend(params, authorizationHeader())
+
+        arrayAppend(params, {'type':'url', 'name':'list', 'value':list})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -925,27 +1153,23 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     /**
      * Enumerates accounts that the requesting account (actor) currently has muted. Requires auth.
      *
-     * @limit 
      * @actor 
+     * @limit 
      * @cursor 
      */
-    public any function getMutes(limit='100', actor, cursor='') localmode='modern' {
+    public any function getMutes(actor, limit='100', cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getMutes'
 
         httpMethod = 'GET'
 
         limit = arguments.limit
-        actor = arguments.actor
+        actor = arguments.actor ?: application.bsky.did
 
         params = arrayNew()
 
         // Authorization required
         isSessionValid()
-
-        if(!isDefined('arguments.actor')){
-            actor = application.bsky.did
-        }
 
         // Request Params
         arrayAppend(params, authorizationHeader())
