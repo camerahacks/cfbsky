@@ -229,7 +229,11 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-    
+    /**
+     * Shorten an url to 30 characters
+     *
+     * @url 
+     */
     public any function shortenURL(required url) localmode='modern' {
 
         return left(arguments.url, 27)&'...'
@@ -277,7 +281,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
-        /**
+    /**
      * Detect mention in post text
      *
      * @record 
@@ -407,6 +411,8 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
             application.bsky.did = bskySessionRequest.did
         
         }else {
+
+            // TODO: Should raise an error here for not being authorized
         
             return 0
         
@@ -572,7 +578,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @limit 
      * @cursor 
      */
-    public any function getSuggestions(limit='100', cursor) localmode='modern'{
+    public any function getSuggestions(limit='100', cursor='') localmode='modern'{
 
         endpoint = 'xrpc/app.bsky.actor.getSuggestions'
 
@@ -589,6 +595,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -611,7 +618,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @term 
      * @cursor 
      */
-    public any function searchActors(required term, cursor) localmode='modern'{
+    public any function searchActors(required term, cursor='') localmode='modern'{
 
         endpoint = 'xrpc/app.bsky.actor.searchActors'
 
@@ -628,6 +635,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         arrayAppend(params, authorizationHeader())
         
         arrayAppend(params, {'type':'url', 'name':'term', 'value':term})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -693,7 +701,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @cursor 
      * @filter 
      */
-    public any function getAuthorFeed(actor, limit='100', cursor, filter='posts_no_replies') {
+    public any function getAuthorFeed(actor, limit='100', cursor='', filter='posts_no_replies') {
 
         endpoint = 'xrpc/app.bsky.feed.getAuthorFeed'
 
@@ -716,6 +724,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':arguments.limit})
         arrayAppend(params, {'type':'url', 'name':'filter', 'value':arguments.filter})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -736,8 +745,9 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      *
      * @algorithm 
      * @limit 
+     * @cursor
      */
-    public any function getTimeline(algorithm='reverse-chronological', limit='17') localmode='modern' {
+    public any function getTimeline(algorithm='reverse-chronological', limit='17', cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.feed.getTimeline'
 
@@ -756,6 +766,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
         arrayAppend(params, {'type':'url', 'name':'algorithm', 'value':algorithm})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -769,9 +780,18 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
     }
 
+    // 
     // GRAPH
+    // 
 
-    public any function getBlocks(limit='100', actor, cursor) localmode='modern' {
+    /**
+     * Enumerates which accounts the requesting account is currently blocking. Requires auth.
+     *
+     * @limit >= 1 and <= 100
+     * @actor 
+     * @cursor 
+     */
+    public any function getBlocks(limit='100', actor, cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getBlocks'
 
@@ -794,6 +814,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -816,7 +837,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @actor 
      * @cursor 
      */
-    public any function getFollowers(limit='100', actor, cursor) localmode='modern' {
+    public any function getFollowers(limit='100', actor, cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollowers'
 
@@ -839,6 +860,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -861,7 +883,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @actor 
      * @cursor 
      */
-    public any function getFollows(limit='100', actor, cursor) localmode='modern' {
+    public any function getFollows(limit='100', actor, cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getFollows'
 
@@ -884,6 +906,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
@@ -906,7 +929,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
      * @actor 
      * @cursor 
      */
-    public any function getMutes(limit='100', actor, cursor) localmode='modern' {
+    public any function getMutes(limit='100', actor, cursor='') localmode='modern' {
 
         endpoint = 'xrpc/app.bsky.graph.getMutes'
 
@@ -929,6 +952,7 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
         
         arrayAppend(params, {'type':'url', 'name':'actor', 'value':actor})
         arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':arguments.cursor})
 
         bskyRequest = sendRequest(endpoint, httpMethod, params)
 
