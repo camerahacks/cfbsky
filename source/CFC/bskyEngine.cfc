@@ -860,6 +860,84 @@ component hint="BlueSky Calls" displayname="BlueSky Calls" output="false" {
     }
 
     /**
+     * Get a feed of recent posts from a list (posts and reposts from any actors on the list). Does not require auth.
+     *
+     * @list AT-URI reference to the list record
+     * @limit 
+     * @cursor 
+     * @private 
+     */
+    public any function getListFeed(required list, limit='100', cursor='', boolean private=true) localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.feed.getListFeed'
+
+        httpMethod = 'GET'
+
+        list = arguments.list
+        limit = arguments.limit
+        cursor = arguments.cursor
+        auth = arguments.private ? true : false
+
+        params = arrayNew()
+
+        arrayAppend(params, {'type':'url', 'name':'list', 'value':list})
+        arrayAppend(params, {'type':'url', 'name':'limit', 'value':limit})
+        arrayAppend(params, {'type':'url', 'name':'cursor', 'value':cursor})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params, private, auth)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
+     * Get posts in a thread. Does not require auth, but additional metadata and filtering will be applied for authed requests.
+     *
+     * @uri AT-URI of the post record.
+     * @depth How many levels of reply depth should be included in response.
+     * @parentHeight How many levels of parent (and grandparent, etc) post to include.
+     * @private 
+     */
+    public any function getPostThread(required uri, depth='6', parentHeight='80', boolean private=true) localmode='modern' {
+
+        endpoint = 'xrpc/app.bsky.feed.getPostThread'
+
+        httpMethod = 'GET'
+
+        uri = arguments.uri
+        depth = arguments.depth
+        parentHeight = arguments.parentHeight
+        auth = arguments.private ? true : false
+
+        params = arrayNew()
+
+        arrayAppend(params, {'type':'url', 'name':'uri', 'value':uri})
+        arrayAppend(params, {'type':'url', 'name':'depth', 'value':depth})
+        arrayAppend(params, {'type':'url', 'name':'parentHeight', 'value':parentHeight})
+
+        bskyRequest = sendRequest(endpoint, httpMethod, params, private, auth)
+
+        if(bskyRequest.statuscode=="200 OK"){
+
+            return deserializeJSON(bskyRequest.filecontent)
+
+        }else{
+
+            return bskyRequest
+
+        }
+        
+    }
+
+    /**
      * Get a view of the requesting account's home timeline. This is expected to be some form of reverse-chronological feed. Requires Auth
      *
      * @algorithm 
